@@ -12,7 +12,7 @@
 
 #include <Eigen/Dense>
 
-#include "../ffht/fht_header_only.h"
+#include "../ffht_new/fht.h"
 #include "data_storage.h"
 #include "heap.h"
 #include "incremental_sorter.h"
@@ -58,16 +58,24 @@ struct FHTFunction {
 template <>
 struct FHTFunction<float> {
   static void apply(float* data, int_fast32_t dim) {
-    if (FHTFloat(data, dim, std::max(dim, static_cast<int_fast32_t>(8))) != 0) {
-      throw LSHFunctionError("FHTFloat returned nonzero value.");
-    }
+      int32_t log_dim = 0;
+      while ((1 << log_dim) < dim) {
+          ++log_dim;
+      }
+      if (fht_float(data, log_dim) != 0) {
+          throw LSHFunctionError("FHTFloat returned nonzero value.");
+      }
   }
 };
 
 template <>
 struct FHTFunction<double> {
   static void apply(double* data, int_fast32_t dim) {
-    if (FHTDouble(data, dim, std::max(dim, static_cast<int_fast32_t>(8))) !=
+      int32_t log_dim = 0;
+      while ((1 << log_dim) < dim) {
+          ++log_dim;
+      }
+    if (fht_double(data, log_dim) !=
         0) {
       throw LSHFunctionError("FHTDouble returned nonzero value.");
     }

@@ -1,0 +1,56 @@
+num_threads 1
+num_bits 16
+num_tables 494
+preprocessing_time 151.25
+outside_average_query_time 0.00231439
+accuracy 0.91002
+index_size 1.61971e+09
+average_total_query_time 0.00231355
+average_lsh_time 0.000343467
+average_hash_table_time 0.000828543
+average_distance_time 0.00114139
+average_num_candidates 20969.7
+average_num_unique_candidates 18420.6
+---
+num_threads 2
+num_bits 16
+num_tables 494
+preprocessing_time 151.25
+outside_average_query_time 0.00131808
+accuracy 0.91002
+index_size 1.61971e+09
+average_total_query_time 0.00263148
+average_lsh_time 0.000346388
+average_hash_table_time 0.000962187
+average_distance_time 0.00132275
+average_num_candidates 20969.7
+average_num_unique_candidates 18420.6
+---
+num_threads 3
+num_bits 16
+num_tables 494
+preprocessing_time 151.25
+outside_average_query_time 0.00100246
+accuracy 0.91002
+index_size 1.61971e+09
+average_total_query_time 0.00299017
+average_lsh_time 0.000357328
+average_hash_table_time 0.00111299
+average_distance_time 0.00151969
+average_num_candidates 20969.7
+average_num_unique_candidates 18420.6
+---
+num_threads 4
+num_bits 16
+num_tables 494
+preprocessing_time 151.25
+outside_average_query_time 0.000848793
+accuracy 0.91002
+index_size 1.61971e+09
+average_total_query_time 0.00338034
+average_lsh_time 0.000375022
+average_hash_table_time 0.00128181
+average_distance_time 0.00172332
+average_num_candidates 20969.7
+average_num_unique_candidates 18420.6
+---
