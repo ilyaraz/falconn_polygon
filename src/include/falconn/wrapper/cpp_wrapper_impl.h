@@ -347,9 +347,10 @@ class LSHNNQueryWrapper : public LSHNearestNeighborQuery<PointType, KeyType> {
   }
 
   void find_k_nearest_neighbors(const PointType& q, int_fast64_t k,
-                                std::vector<KeyType>* result) {
+                                std::vector<KeyType>* result,
+                                core::RandomProjectionsSketchQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) {
     internal_nn_query_->find_k_nearest_neighbors(q, q, k, num_probes_,
-                                                 max_num_candidates_, result);
+                                                 max_num_candidates_, result, sketch_query_object);
   }
 
   void find_near_neighbors(const PointType& q, DistanceType threshold,
@@ -447,10 +448,11 @@ class LSHNNQueryPool : public LSHNearestNeighborQueryPool<PointType, KeyType> {
   }
 
   void find_k_nearest_neighbors(const PointType& q, int_fast64_t k,
-                                std::vector<KeyType>* result) {
+                                std::vector<KeyType>* result,
+                                core::RandomProjectionsSketchQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) {
     int_fast32_t query_index = get_query_index_and_lock();
     internal_nn_queries_[query_index]->find_k_nearest_neighbors(
-        q, q, k, num_probes_, max_num_candidates_, result);
+                                                                q, q, k, num_probes_, max_num_candidates_, result, sketch_query_object);
     unlock_query(query_index);
   }
 

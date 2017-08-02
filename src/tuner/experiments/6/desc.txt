@@ -1,0 +1,2 @@
+Single-probe, flat tables, faster FHT,
+128-bit sketches with threshold 48

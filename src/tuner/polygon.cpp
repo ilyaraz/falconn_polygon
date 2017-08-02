@@ -1,5 +1,6 @@
 #include "tuner_common.h"
 
+#include <falconn/core/sketches.h>
 #include <falconn/lsh_nn_table.h>
 
 #include <Eigen/Dense>
@@ -10,6 +11,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -22,6 +24,7 @@ using std::cout;
 using std::endl;
 using std::lock_guard;
 using std::make_pair;
+using std::mt19937_64;
 using std::mutex;
 using std::numeric_limits;
 using std::ofstream;
@@ -52,12 +55,18 @@ using falconn::PlainArrayPointSet;
 using falconn::QueryStatistics;
 using falconn::StorageHashTable;
 
+using falconn::core::PlainArrayDataStorage;
+using falconn::core::RandomProjectionsSketch;
+using falconn::core::RandomProjectionsSketchQuery;
+
 using falconn::tuner::read_dataset;
 using falconn::tuner::read_knn;
 
 mutex hack;
 
 void worker(shared_ptr<LSHNearestNeighborQuery<DenseVector<float>>> query_object,
+            RandomProjectionsSketchQuery<DenseVector<float>,
+            PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object,
             const VectorXf &center,
             PlainArrayPointSet<float> queries,
             int32_t query_begin,
@@ -70,7 +79,8 @@ void worker(shared_ptr<LSHNearestNeighborQuery<DenseVector<float>>> query_object
         query_object->
             find_k_nearest_neighbors(Map<const VectorXf>(queries.data + i * d, d) - center,
                                      k,
-                                     &row);
+                                     &row,
+                                     sketch_query_object);
         {
             lock_guard<mutex> lock(hack);
             (*output_knn)[i] = row;
@@ -101,10 +111,16 @@ double evaluate(PlainArrayPointSet<float> points,
 
     compute_number_of_hash_functions<DenseVector<float>>(num_bits, &params);
 
+    mt19937_64 gen(627351);
+
     cout << "building index" << endl;
     time_point<high_resolution_clock> t1 = high_resolution_clock::now();
     auto table =
                construct_table<DenseVector<float>, int32_t, PlainArrayPointSet<float>>(points, params);
+    PlainArrayDataStorage<DenseVector<float>> pads(points.data, points.num_points, points.dimension);
+    RandomProjectionsSketch<DenseVector<float>,
+                            PlainArrayDataStorage<DenseVector<float>>>
+        sketches(pads, 2, gen);
     time_point<high_resolution_clock> t2 = high_resolution_clock::now();
     cout << "done" << endl;
     double build_time = duration_cast<duration<double>>(t2 - t1).count();
@@ -128,14 +144,22 @@ double evaluate(PlainArrayPointSet<float> points,
             start[i + 1] = start[i] + amount;
         }
         vector<shared_ptr<LSHNearestNeighborQuery<DenseVector<float>>>> query_objects;
+        vector<RandomProjectionsSketchQuery<DenseVector<float>,
+                                            PlainArrayDataStorage<DenseVector<float>>>>
+            sketch_query_objects;
         for (int32_t i = 0; i < num_threads; ++i) {
             query_objects.push_back(table->construct_query_object());
+            sketch_query_objects
+                .push_back(RandomProjectionsSketchQuery<DenseVector<float>,
+                                                        PlainArrayDataStorage<DenseVector<float>>>
+                           (sketches, 48));
         }
         vector<thread> threads;
         t1 = high_resolution_clock::now();
         for (int32_t i = 0; i < num_threads; ++i) {
             threads.push_back(thread(worker,
                                      query_objects[i],
+                                     &sketch_query_objects[i],
                                      center,
                                      queries,
                                      start[i],
@@ -183,9 +207,11 @@ double evaluate(PlainArrayPointSet<float> points,
         (*log) << "average_total_query_time " << query_statistics.average_total_query_time << endl;
         (*log) << "average_lsh_time " << query_statistics.average_lsh_time << endl;
         (*log) << "average_hash_table_time " << query_statistics.average_hash_table_time << endl;
+        (*log) << "average_sketches_time " << query_statistics.average_sketches_time << endl;
         (*log) << "average_distance_time " << query_statistics.average_distance_time << endl;
         (*log) << "average_num_candidates " << query_statistics.average_num_candidates << endl;
         (*log) << "average_num_unique_candidates " << query_statistics.average_num_unique_candidates << endl;
+        (*log) << "average_num_filtered_candidates " << query_statistics.average_num_filtered_candidates << endl;
         (*log) << "---" << endl;
     }
     return double(model_num_correct) / double(k * queries.num_points);
@@ -298,6 +324,7 @@ int main() {
                             16,
                             knn,
                             &log);
+    cout << score << endl;
     delete[] dataset_flat;
     delete[] queries_flat;
     return 0;

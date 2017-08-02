@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -83,7 +84,9 @@ class NearestNeighborQuery {
                                 const ComparisonPointType& q_comp,
                                 int_fast64_t k, int_fast64_t num_probes,
                                 int_fast64_t max_num_candidates,
-                                std::vector<LSHTableKeyType>* result) {
+                                std::vector<LSHTableKeyType>* result,
+                                RandomProjectionsSketchQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) {
+
     if (result == nullptr) {
       throw NearestNeighborQueryError("Results vector pointer is nullptr.");
     }
@@ -96,13 +99,34 @@ class NearestNeighborQuery {
     table_query_->get_unique_candidates(q, num_probes, max_num_candidates,
                                         &candidates_);
 
+    if (sketch_query_object == nullptr) {
+        throw std::runtime_error("must have query object");
+    }
+    auto sketch_start_time = std::chrono::high_resolution_clock::now();
+    sketch_query_object->load_query(q);
+    filtered_candidates_.clear();
+    for (auto x: candidates_) {
+        if (sketch_query_object->is_close(x)) {
+            filtered_candidates_.push_back(x);
+        }
+        else {
+        }
+    }
+    auto sketch_stop_time = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_sketch = std::chrono::duration_cast<std::chrono::duration<double>>(sketch_stop_time - sketch_start_time).count();
+
+    stats_.average_sketches_time += elapsed_sketch;
+
+    stats_.average_num_filtered_candidates += filtered_candidates_.size();
+
     heap_.reset();
     heap_.resize(k);
 
     auto distance_start_time = std::chrono::high_resolution_clock::now();
 
     typename DataStorage::SubsequenceIterator iter =
-        data_storage_.get_subsequence(candidates_);
+        data_storage_.get_subsequence(filtered_candidates_);
 
     int_fast64_t initially_inserted = 0;
     for (; initially_inserted < k; ++initially_inserted) {
@@ -223,10 +247,14 @@ class NearestNeighborQuery {
     QueryStatistics res = table_query_->get_query_statistics();
     res.average_total_query_time = stats_.average_total_query_time;
     res.average_distance_time = stats_.average_distance_time;
+    res.average_sketches_time = stats_.average_sketches_time;
+    res.average_num_filtered_candidates = stats_.average_num_filtered_candidates;
 
     if (res.num_queries > 0) {
       res.average_total_query_time /= res.num_queries;
       res.average_distance_time /= res.num_queries;
+      res.average_sketches_time /= res.num_queries;
+      res.average_num_filtered_candidates /= res.num_queries;
     }
     return res;
   }
@@ -234,7 +262,8 @@ class NearestNeighborQuery {
  private:
   LSHTableQuery* table_query_;
   const DataStorage& data_storage_;
-  std::vector<LSHTableKeyType> candidates_;
+    std::vector<LSHTableKeyType> candidates_;
+    std::vector<LSHTableKeyType> filtered_candidates_;
   DistanceFunction dst_;
   SimpleHeap<DistanceType, LSHTableKeyType> heap_;
 

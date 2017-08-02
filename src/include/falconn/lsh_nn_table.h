@@ -11,6 +11,9 @@
 
 #include "falconn_global.h"
 
+#include <falconn/core/data_storage.h>
+#include <falconn/core/sketches.h>
+
 ///
 /// The main namespace.
 ///
@@ -67,7 +70,8 @@ class LSHNearestNeighborQuery {
   /// The keys are returned in order of increasing distance to q.
   ///
   virtual void find_k_nearest_neighbors(const PointType& q, int_fast64_t k,
-                                        std::vector<KeyType>* result) = 0;
+                                        std::vector<KeyType>* result,
+                                        core::RandomProjectionsSketchQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) = 0;
 
   ///
   /// Returns the keys corresponding to candidates in the probing sequence for q
@@ -154,7 +158,8 @@ class LSHNearestNeighborQueryPool {
   /// See the documentation for LSHNearestNeighborQuery.
   ///
   virtual void find_k_nearest_neighbors(const PointType& q, int_fast64_t k,
-                                        std::vector<KeyType>* result) = 0;
+                                        std::vector<KeyType>* result,
+                                        core::RandomProjectionsSketchQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) = 0;
 
   ///
   /// Returns the keys corresponding to candidates in the probing sequence for q

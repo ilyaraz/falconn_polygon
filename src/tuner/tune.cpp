@@ -1,5 +1,7 @@
 #include "tuner_common.h"
 
+#include <falconn/core/sketches.h>
+
 #include <falconn/lsh_nn_table.h>
 
 #include <Eigen/Dense>
@@ -10,6 +12,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -22,6 +25,7 @@ using std::cout;
 using std::endl;
 using std::lock_guard;
 using std::make_pair;
+using std::mt19937_64;
 using std::mutex;
 using std::numeric_limits;
 using std::ofstream;
@@ -51,6 +55,10 @@ using falconn::LSHNearestNeighborTable;
 using falconn::PlainArrayPointSet;
 using falconn::QueryStatistics;
 using falconn::StorageHashTable;
+
+using falconn::core::PlainArrayDataStorage;
+using falconn::core::RandomProjectionsSketch;
+using falconn::core::RandomProjectionsSketchQuery;
 
 using falconn::tuner::read_dataset;
 using falconn::tuner::read_knn;
@@ -282,8 +290,77 @@ int main() {
     for (size_t i = 0; i < n; ++i) {
         Map<VectorXf>(dataset_flat + i * d, d) -= center;
     }
-    cout << center.norm() << endl;
     cout << "done" << endl;
+
+    cout << "optimized linear scan (1 thread)" << endl;
+    PlainArrayDataStorage<DenseVector<float>> pads(dataset_flat, n, d);
+    mt19937_64 gen(612534);
+    for (int32_t num_chunks = 1; num_chunks <= 50; ++num_chunks) {
+        cout << 64 * num_chunks << " bits" << endl;
+        RandomProjectionsSketch<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>>
+            sketches(pads, num_chunks, gen);
+        RandomProjectionsSketchQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>>
+            sketches_query(sketches);
+        vector<int32_t> distances;
+        for (uint32_t i = 0; i < q; ++i) {
+            sketches_query.load_query(Map<VectorXf>(queries_flat + i * d, d) - center);
+            for (uint32_t j = 0; j < k; ++j) {
+                distances.push_back(sketches_query.get_hamming_distance(knn[i][j]));
+            }
+        }
+        sort(distances.begin(), distances.end());
+        int32_t threshold = distances[(size_t)ceil(0.9 * k * q) - 1];
+        cout << "threshold: " << threshold << endl;
+        sketches_query.set_hamming_threshold(threshold);
+        int64_t num_candidates = 0;
+        t1 = high_resolution_clock::now();
+        vector<vector<uint32_t>> output_knn(q, vector<uint32_t>(k));
+        for (uint32_t i = 0; i < q; ++i) {
+            VectorXf cur_q = Map<VectorXf>(queries_flat + i * d, d) - center;
+            sketches_query.load_query(cur_q);
+            vector<pair<float, uint32_t>> cur_knn(k, make_pair(numeric_limits<float>::max(), n));
+            pair<float, uint32_t> best(numeric_limits<float>::max(), 0);
+            for (uint32_t j = 0; j < n; ++j) {
+                if (!sketches_query.is_close(j)) {
+                    continue;
+                }
+                ++num_candidates;
+                Map<VectorXf> cur_d(dataset_flat + j * d, d);
+                float score = (cur_q - cur_d).norm();
+                if (score >= best.first) {
+                    continue;
+                }
+                cur_knn[best.second] = make_pair(score, j);
+                best = make_pair(-1.0, k);
+                for (uint32_t kk = 0; kk < k; ++kk) {
+                    if (cur_knn[kk].first > best.first) {
+                        best = make_pair(cur_knn[kk].first, kk);
+                    }
+                }
+            }
+            for (uint32_t j = 0; j < k; ++j) {
+                output_knn[i][j] = cur_knn[j].second;
+            }
+        }
+        t2 = high_resolution_clock::now();
+        int32_t num_correct = 0;
+        for (uint32_t i = 0; i < q; ++i) {
+            set<int32_t> s(output_knn[i].begin(), output_knn[i].end());
+            for (uint32_t j = 0; j < k; ++j) {
+                if (s.count(knn[i][j])) {
+                    ++num_correct;
+                }
+            }
+        }
+        double score = double(num_correct) / double(q * k);
+        double query_time = duration_cast<duration<double>>(t2 - t1).count() / double(q);
+        cout << "threshold: " << threshold << endl;
+        cout << "candidates: " << double(num_candidates) / double(q) << endl;
+        cout << "time: " << query_time << endl;
+        cout << "score: " << score << endl;
+    }
+    cout << "done" << endl;
+    return 0;
 
     PlainArrayPointSet<float> points;
     points.data = dataset_flat;
