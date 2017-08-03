@@ -127,6 +127,35 @@ double evaluate(PlainArrayPointSet<float> points,
     cout << "time: " << build_time << endl;
 
     uint32_t k = knn[0].size();
+
+    cout << "computing threshold" << endl;
+    auto query_object = table->construct_query_object();
+    RandomProjectionsSketchQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>> sketches_query(sketches);
+    vector<int32_t> dists;
+    for (uint32_t i = 0; i < queries.num_points; ++i) {
+        vector<int32_t> candidates;
+        VectorXf cur_q = Map<const VectorXf>(queries.data + i * queries.dimension, queries.dimension) - center;
+        query_object->get_unique_candidates(cur_q, &candidates);
+        sketches_query.load_query(cur_q);
+        set<int32_t> s(candidates.begin(), candidates.end());
+        for (uint32_t j = 0; j < k; ++j) {
+            if (s.count(knn[i][j])) {
+                dists.push_back(sketches_query.get_hamming_distance(knn[i][j]));
+            }
+            else {
+            }
+        }
+    }
+    sort(dists.begin(), dists.end());
+    double score = double(dists.size()) / double(queries.num_points * k);
+    cout << "score: " << score << endl;
+    if (score < 0.9) {
+        return score;
+    }
+    int32_t threshold = dists[(int32_t)ceil(0.9 * queries.num_points * k) - 1];
+    cout << "threshold: " << threshold << endl;
+    cout << "done" << endl;
+
     vector<vector<int32_t>> output_knn(queries.num_points, vector<int32_t>(k));
 
     double table_size = double((uint64_t(1) << num_bits) + points.num_points) * 4.0;
@@ -152,7 +181,7 @@ double evaluate(PlainArrayPointSet<float> points,
             sketch_query_objects
                 .push_back(RandomProjectionsSketchQuery<DenseVector<float>,
                                                         PlainArrayDataStorage<DenseVector<float>>>
-                           (sketches, 48));
+                           (sketches, threshold));
         }
         vector<thread> threads;
         t1 = high_resolution_clock::now();
@@ -193,6 +222,8 @@ double evaluate(PlainArrayPointSet<float> points,
         (*log) << "num_threads " << num_threads << endl;
         (*log) << "num_bits " << num_bits << endl;
         (*log) << "num_tables " << num_tables << endl;
+        (*log) << "num_sketch_bits 128" << endl;
+        (*log) << "hamming_threshold " << threshold << endl;
         (*log) << "preprocessing_time " << build_time << endl;
         (*log) << "outside_average_query_time " << query_time << endl;
         (*log) << "accuracy " << score << endl;

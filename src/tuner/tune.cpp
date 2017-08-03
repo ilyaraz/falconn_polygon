@@ -248,7 +248,6 @@ int main() {
     ofstream log("log.txt");
     cout << "trying linear scan (1 thread)" << endl;
     time_point<high_resolution_clock> t1 = high_resolution_clock::now();
-    /*
     for (uint32_t i = 0; i < q; ++i) {
         Map<VectorXf> cur_q(queries_flat + i * d, d);
         vector<pair<float, uint32_t>> cur_knn(k, make_pair(numeric_limits<float>::max(), n));
@@ -274,7 +273,6 @@ int main() {
             }
         }
     }
-    */
     time_point<high_resolution_clock> t2 = high_resolution_clock::now();
     cout << "done" << endl;
     double linear_scan_time = duration_cast<duration<double>>(t2 - t1).count() / q;
@@ -360,7 +358,6 @@ int main() {
         cout << "score: " << score << endl;
     }
     cout << "done" << endl;
-    return 0;
 
     PlainArrayPointSet<float> points;
     points.data = dataset_flat;

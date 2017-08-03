@@ -100,23 +100,25 @@ class NearestNeighborQuery {
                                         &candidates_);
 
     if (sketch_query_object == nullptr) {
-        throw std::runtime_error("must have query object");
+        candidates_.swap(filtered_candidates_);
     }
-    auto sketch_start_time = std::chrono::high_resolution_clock::now();
-    sketch_query_object->load_query(q);
-    filtered_candidates_.clear();
-    for (auto x: candidates_) {
-        if (sketch_query_object->is_close(x)) {
-            filtered_candidates_.push_back(x);
+    else {
+        auto sketch_start_time = std::chrono::high_resolution_clock::now();
+        sketch_query_object->load_query(q);
+        filtered_candidates_.clear();
+        for (auto x: candidates_) {
+            if (sketch_query_object->is_close(x)) {
+                filtered_candidates_.push_back(x);
+            }
+            else {
+            }
         }
-        else {
-        }
+        auto sketch_stop_time = std::chrono::high_resolution_clock::now();
+
+        auto elapsed_sketch = std::chrono::duration_cast<std::chrono::duration<double>>(sketch_stop_time - sketch_start_time).count();
+
+        stats_.average_sketches_time += elapsed_sketch;
     }
-    auto sketch_stop_time = std::chrono::high_resolution_clock::now();
-
-    auto elapsed_sketch = std::chrono::duration_cast<std::chrono::duration<double>>(sketch_stop_time - sketch_start_time).count();
-
-    stats_.average_sketches_time += elapsed_sketch;
 
     stats_.average_num_filtered_candidates += filtered_candidates_.size();
 
