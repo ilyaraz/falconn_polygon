@@ -21,11 +21,11 @@ class SketchesError : public FalconnError {
 namespace sketches_helpers {
 
 template <typename PointType, typename DataStorageType>
-class RandomProjectionsSketchWorker {
+class RandomProjectionSketchesWorker {
  public:
   typedef typename PointTypeTraits<PointType>::ScalarType ScalarType;
 
-  RandomProjectionsSketchWorker(int32_t dimension, int32_t num_rotations,
+  RandomProjectionSketchesWorker(int32_t dimension, int32_t num_rotations,
                                 int32_t num_chunks,
                                 const std::vector<ScalarType> &random_signs)
       : dimension_(dimension),
@@ -95,15 +95,15 @@ class RandomProjectionsSketchWorker {
 }
 
 template <typename PointType, typename DataStorageType>
-class RandomProjectionsSketchQuery;
+class RandomProjectionSketchesQuery;
 
 template <typename PointType, typename DataStorageType>
-class RandomProjectionsSketch {
+class RandomProjectionSketches {
  public:
   typedef typename PointTypeTraits<PointType>::ScalarType ScalarType;
 
   template <typename RNG>
-  RandomProjectionsSketch(const DataStorageType &points, int32_t num_chunks,
+  RandomProjectionSketches(const DataStorageType &points, int32_t num_chunks,
                           RNG &rng)
       : num_chunks_(num_chunks), sketches_(points.size() * num_chunks) {
     if (num_chunks < 1) {
@@ -134,7 +134,7 @@ class RandomProjectionsSketch {
       random_signs_[i] = 1.0 - 2.0 * random_bit(rng);
     }
 
-    sketches_helpers::RandomProjectionsSketchWorker<PointType, DataStorageType>
+    sketches_helpers::RandomProjectionSketchesWorker<PointType, DataStorageType>
         worker(dimension_, num_rotations_, num_chunks_, random_signs_);
 
     int32_t counter = 0;
@@ -154,14 +154,14 @@ class RandomProjectionsSketch {
   int32_t dimension_;
   int32_t num_rotations_;
 
-  friend class RandomProjectionsSketchQuery<PointType, DataStorageType>;
+  friend class RandomProjectionSketchesQuery<PointType, DataStorageType>;
 };
 
 template <typename PointType, typename DataStorageType>
-class RandomProjectionsSketchQuery {
+class RandomProjectionSketchesQuery {
  public:
-  RandomProjectionsSketchQuery(
-      const RandomProjectionsSketch<PointType, DataStorageType> &sketch,
+  RandomProjectionSketchesQuery(
+      const RandomProjectionSketches<PointType, DataStorageType> &sketch,
       int32_t distance_threshold = -1)
       : sketch_(sketch),
         num_chunks_(sketch.num_chunks_),
@@ -205,10 +205,10 @@ class RandomProjectionsSketchQuery {
   }
 
  private:
-  const RandomProjectionsSketch<PointType, DataStorageType> &sketch_;
+  const RandomProjectionSketches<PointType, DataStorageType> &sketch_;
   int32_t num_chunks_;
   int32_t distance_threshold_;
-  sketches_helpers::RandomProjectionsSketchWorker<PointType, DataStorageType>
+  sketches_helpers::RandomProjectionSketchesWorker<PointType, DataStorageType>
       worker_;
 
   std::vector<uint64_t> query_sketch_;

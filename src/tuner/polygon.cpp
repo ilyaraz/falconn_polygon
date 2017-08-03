@@ -56,8 +56,8 @@ using falconn::QueryStatistics;
 using falconn::StorageHashTable;
 
 using falconn::core::PlainArrayDataStorage;
-using falconn::core::RandomProjectionsSketch;
-using falconn::core::RandomProjectionsSketchQuery;
+using falconn::core::RandomProjectionSketches;
+using falconn::core::RandomProjectionSketchesQuery;
 
 using falconn::tuner::read_dataset;
 using falconn::tuner::read_knn;
@@ -65,7 +65,7 @@ using falconn::tuner::read_knn;
 mutex hack;
 
 void worker(shared_ptr<LSHNearestNeighborQuery<DenseVector<float>>> query_object,
-            RandomProjectionsSketchQuery<DenseVector<float>,
+            RandomProjectionSketchesQuery<DenseVector<float>,
             PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object,
             const VectorXf &center,
             PlainArrayPointSet<float> queries,
@@ -118,8 +118,8 @@ double evaluate(PlainArrayPointSet<float> points,
     auto table =
                construct_table<DenseVector<float>, int32_t, PlainArrayPointSet<float>>(points, params);
     PlainArrayDataStorage<DenseVector<float>> pads(points.data, points.num_points, points.dimension);
-    RandomProjectionsSketch<DenseVector<float>,
-                            PlainArrayDataStorage<DenseVector<float>>>
+    RandomProjectionSketches<DenseVector<float>,
+                             PlainArrayDataStorage<DenseVector<float>>>
         sketches(pads, 2, gen);
     time_point<high_resolution_clock> t2 = high_resolution_clock::now();
     cout << "done" << endl;
@@ -130,7 +130,7 @@ double evaluate(PlainArrayPointSet<float> points,
 
     cout << "computing threshold" << endl;
     auto query_object = table->construct_query_object();
-    RandomProjectionsSketchQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>> sketches_query(sketches);
+    RandomProjectionSketchesQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>> sketches_query(sketches);
     vector<int32_t> dists;
     for (uint32_t i = 0; i < queries.num_points; ++i) {
         vector<int32_t> candidates;
@@ -173,13 +173,13 @@ double evaluate(PlainArrayPointSet<float> points,
             start[i + 1] = start[i] + amount;
         }
         vector<shared_ptr<LSHNearestNeighborQuery<DenseVector<float>>>> query_objects;
-        vector<RandomProjectionsSketchQuery<DenseVector<float>,
+        vector<RandomProjectionSketchesQuery<DenseVector<float>,
                                             PlainArrayDataStorage<DenseVector<float>>>>
             sketch_query_objects;
         for (int32_t i = 0; i < num_threads; ++i) {
             query_objects.push_back(table->construct_query_object());
             sketch_query_objects
-                .push_back(RandomProjectionsSketchQuery<DenseVector<float>,
+                .push_back(RandomProjectionSketchesQuery<DenseVector<float>,
                                                         PlainArrayDataStorage<DenseVector<float>>>
                            (sketches, threshold));
         }

@@ -71,7 +71,7 @@ class LSHNearestNeighborQuery {
   ///
   virtual void find_k_nearest_neighbors(const PointType& q, int_fast64_t k,
                                         std::vector<KeyType>* result,
-                                        core::RandomProjectionsSketchQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) = 0;
+                                        core::RandomProjectionSketchesQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) = 0;
 
   ///
   /// Returns the keys corresponding to candidates in the probing sequence for q
@@ -159,7 +159,7 @@ class LSHNearestNeighborQueryPool {
   ///
   virtual void find_k_nearest_neighbors(const PointType& q, int_fast64_t k,
                                         std::vector<KeyType>* result,
-                                        core::RandomProjectionsSketchQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) = 0;
+                                        core::RandomProjectionSketchesQuery<DenseVector<float>, core::PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) = 0;
 
   ///
   /// Returns the keys corresponding to candidates in the probing sequence for q

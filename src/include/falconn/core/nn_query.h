@@ -85,7 +85,7 @@ class NearestNeighborQuery {
                                 int_fast64_t k, int_fast64_t num_probes,
                                 int_fast64_t max_num_candidates,
                                 std::vector<LSHTableKeyType>* result,
-                                RandomProjectionsSketchQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) {
+                                RandomProjectionSketchesQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>> *sketch_query_object = nullptr) {
 
     if (result == nullptr) {
       throw NearestNeighborQueryError("Results vector pointer is nullptr.");

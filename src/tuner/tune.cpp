@@ -57,8 +57,8 @@ using falconn::QueryStatistics;
 using falconn::StorageHashTable;
 
 using falconn::core::PlainArrayDataStorage;
-using falconn::core::RandomProjectionsSketch;
-using falconn::core::RandomProjectionsSketchQuery;
+using falconn::core::RandomProjectionSketches;
+using falconn::core::RandomProjectionSketchesQuery;
 
 using falconn::tuner::read_dataset;
 using falconn::tuner::read_knn;
@@ -295,9 +295,9 @@ int main() {
     mt19937_64 gen(612534);
     for (int32_t num_chunks = 1; num_chunks <= 50; ++num_chunks) {
         cout << 64 * num_chunks << " bits" << endl;
-        RandomProjectionsSketch<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>>
+        RandomProjectionSketches<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>>
             sketches(pads, num_chunks, gen);
-        RandomProjectionsSketchQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>>
+        RandomProjectionSketchesQuery<DenseVector<float>, PlainArrayDataStorage<DenseVector<float>>>
             sketches_query(sketches);
         vector<int32_t> distances;
         for (uint32_t i = 0; i < q; ++i) {
