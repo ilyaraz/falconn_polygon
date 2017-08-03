@@ -1,0 +1,3 @@
+Single-probe, flat tables, faster FHT,
+128-bit sketches with threshold automatic threshold
+EC2 c4.2xlarge dedicated instance
