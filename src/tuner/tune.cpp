@@ -303,13 +303,13 @@ int main() {
         for (uint32_t i = 0; i < q; ++i) {
             sketches_query.load_query(Map<VectorXf>(queries_flat + i * d, d) - center);
             for (uint32_t j = 0; j < k; ++j) {
-                distances.push_back(sketches_query.get_hamming_distance(knn[i][j]));
+                distances.push_back(sketches_query.get_distance_estimate(knn[i][j]));
             }
         }
         sort(distances.begin(), distances.end());
         int32_t threshold = distances[(size_t)ceil(0.9 * k * q) - 1];
         cout << "threshold: " << threshold << endl;
-        sketches_query.set_hamming_threshold(threshold);
+        sketches_query.set_distance_threshold(threshold);
         int64_t num_candidates = 0;
         t1 = high_resolution_clock::now();
         vector<vector<uint32_t>> output_knn(q, vector<uint32_t>(k));

@@ -140,7 +140,7 @@ double evaluate(PlainArrayPointSet<float> points,
         set<int32_t> s(candidates.begin(), candidates.end());
         for (uint32_t j = 0; j < k; ++j) {
             if (s.count(knn[i][j])) {
-                dists.push_back(sketches_query.get_hamming_distance(knn[i][j]));
+                dists.push_back(sketches_query.get_distance_estimate(knn[i][j]));
             }
             else {
             }
