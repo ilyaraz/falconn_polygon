@@ -20,7 +20,7 @@ class SketchesError : public FalconnError {
 
 namespace sketches_helpers {
 
-template <typename PointType, typename DataStorageType>
+template <typename PointType, typename DataStorageType = std::vector<PointType>>
 class RandomProjectionSketchesWorker {
  public:
   typedef typename PointTypeTraits<PointType>::ScalarType ScalarType;
@@ -94,10 +94,11 @@ class RandomProjectionSketchesWorker {
 };
 }
 
-template <typename PointType, typename DataStorageType>
+template <typename PointType, typename IndexType = int32_t,
+          typename DataStorageType = std::vector<PointType>>
 class RandomProjectionSketchesQuery;
 
-template <typename PointType, typename DataStorageType>
+template <typename PointType, typename DataStorageType = std::vector<PointType>>
 class RandomProjectionSketches {
  public:
   typedef typename PointTypeTraits<PointType>::ScalarType ScalarType;
@@ -137,7 +138,7 @@ class RandomProjectionSketches {
     sketches_helpers::RandomProjectionSketchesWorker<PointType, DataStorageType>
         worker(dimension_, num_rotations_, num_chunks_, random_signs_);
 
-    int32_t counter = 0;
+    size_t counter = 0;
     while (iter.is_valid()) {
       worker.compute_sketch(iter.get_point(),
                             &sketches_[counter * num_chunks_]);
@@ -154,10 +155,11 @@ class RandomProjectionSketches {
   int32_t dimension_;
   int32_t num_rotations_;
 
-  friend class RandomProjectionSketchesQuery<PointType, DataStorageType>;
+  template <typename, typename, typename>
+  friend class RandomProjectionSketchesQuery;
 };
 
-template <typename PointType, typename DataStorageType>
+template <typename PointType, typename IndexType, typename DataStorageType>
 class RandomProjectionSketchesQuery {
  public:
   RandomProjectionSketchesQuery(
@@ -182,12 +184,12 @@ class RandomProjectionSketchesQuery {
     loaded_ = true;
   }
 
-  inline int32_t get_distance_estimate(int32_t dataset_point_id) {
+  inline int32_t get_distance_estimate(IndexType dataset_point_id) {
     if (!loaded_) {
       throw SketchesError("query is not loaded");
     }
     int32_t hamming_distance = 0;
-    int32_t ind = dataset_point_id * num_chunks_;
+    size_t ind = dataset_point_id * num_chunks_;
     for (int32_t i = 0; i < num_chunks_; ++i) {
       hamming_distance +=
           __builtin_popcountll(sketch_.sketches_[ind] ^ query_sketch_[i]);
@@ -196,12 +198,12 @@ class RandomProjectionSketchesQuery {
     return hamming_distance;
   }
 
-  inline bool is_close(int32_t dataset_point_id) {
+  inline bool is_close(IndexType dataset_point_id) {
     return get_distance_estimate(dataset_point_id) <= distance_threshold_;
   }
 
-  inline void filter_close(const std::vector<int32_t> &candidates,
-                           std::vector<int32_t> *filtered_candidates) {
+  inline void filter_close(const std::vector<IndexType> &candidates,
+                           std::vector<IndexType> *filtered_candidates) {
     filtered_candidates->clear();
     for (size_t i = 0; i < candidates.size(); ++i) {
       if (is_close(candidates[i])) {
