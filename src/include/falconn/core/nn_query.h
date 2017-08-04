@@ -105,14 +105,7 @@ class NearestNeighborQuery {
     else {
         auto sketch_start_time = std::chrono::high_resolution_clock::now();
         sketch_query_object->load_query(q);
-        filtered_candidates_.clear();
-        for (auto x: candidates_) {
-            if (sketch_query_object->is_close(x)) {
-                filtered_candidates_.push_back(x);
-            }
-            else {
-            }
-        }
+        sketch_query_object->filter_close(candidates_, &filtered_candidates_);
         auto sketch_stop_time = std::chrono::high_resolution_clock::now();
 
         auto elapsed_sketch = std::chrono::duration_cast<std::chrono::duration<double>>(sketch_stop_time - sketch_start_time).count();

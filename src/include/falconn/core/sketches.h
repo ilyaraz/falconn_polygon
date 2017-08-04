@@ -26,8 +26,8 @@ class RandomProjectionSketchesWorker {
   typedef typename PointTypeTraits<PointType>::ScalarType ScalarType;
 
   RandomProjectionSketchesWorker(int32_t dimension, int32_t num_rotations,
-                                int32_t num_chunks,
-                                const std::vector<ScalarType> &random_signs)
+                                 int32_t num_chunks,
+                                 const std::vector<ScalarType> &random_signs)
       : dimension_(dimension),
         num_rotations_(num_rotations),
         num_chunks_(num_chunks),
@@ -104,7 +104,7 @@ class RandomProjectionSketches {
 
   template <typename RNG>
   RandomProjectionSketches(const DataStorageType &points, int32_t num_chunks,
-                          RNG &rng)
+                           RNG &rng)
       : num_chunks_(num_chunks), sketches_(points.size() * num_chunks) {
     if (num_chunks < 1) {
       throw SketchesError("there must be at least one chunk");
@@ -198,6 +198,16 @@ class RandomProjectionSketchesQuery {
 
   inline bool is_close(int32_t dataset_point_id) {
     return get_distance_estimate(dataset_point_id) <= distance_threshold_;
+  }
+
+  inline void filter_close(const std::vector<int32_t> &candidates,
+                           std::vector<int32_t> *filtered_candidates) {
+    filtered_candidates->clear();
+    for (size_t i = 0; i < candidates.size(); ++i) {
+      if (is_close(candidates[i])) {
+        filtered_candidates->push_back(candidates[i]);
+      }
+    }
   }
 
   void set_distance_threshold(int32_t threshold) {
